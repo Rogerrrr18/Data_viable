@@ -1,0 +1,26 @@
+{
+  "name": "data-dashboard-visualization",
+  "version": "1.0.0",
+  "description": "数据看板可视化项目",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "path": "^0.12.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "data",
+    "visualization",
+    "dashboard"
+  ],
+  "author": "",
+  "license": "MIT"
+}
