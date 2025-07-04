@@ -58,7 +58,9 @@ const percentIndicators = [
 // 获取数据并渲染图表
 async function loadDataAndRenderCharts() {
     try {
-        const response = await fetch('/api/data');
+        // 使用绝对路径，确保无论 index.html 在哪个目录都能找到数据文件
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/data.json`);
         if (!response.ok) {
             throw new Error('数据获取失败');
         }
