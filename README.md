@@ -71,6 +71,38 @@ npm run dev
 └── README.md              # 项目说明
 ```
 
+## 工具与环境
+
+### 数据仓库
+- ClickHouse：高性能列式数据库
+- MySQL：关系型数据库
+
+### 分析工具
+- Python
+  - pandas：数据处理与分析
+  - numpy：数学计算
+  - openpyxl：Excel文件处理
+- Node.js
+  - xlsx：Excel文件读取
+
+### 可视化工具
+- G2Plot：Web端数据可视化库
+- Excel内置图表：静态报表展示
+- Express.js：Web服务器框架
+
+### 开发环境
+- Python 3.x
+- Node.js 18+
+- Conda：环境管理
+
+### 协作工具
+- GitLab：版本管理
+- Confluence（腾讯文档）：文档协作
+
+### 部署环境
+- 阿里云服务器
+- Nginx：Web服务器
+
 ## 技术栈
 
 - **后端**: Node.js + Express

@@ -2,9 +2,14 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Font, Alignment
+from openpyxl.drawing.image import Image as XLImage
+import os
+import matplotlib
+matplotlib.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei']
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 def calculate_conversion_rates(file_path):
     """
@@ -137,64 +142,6 @@ def calculate_conversion_rates(file_path):
         print(f"  D90转化率: {row['D90付费人数']}/{row['注册人数']} = {row['D90转化率']*100:.2f}%")
         print()
     
-    # 生成转化率频数分布直方图数据
-    print("正在生成转化率频数分布直方图...")
-    
-    # 创建Excel工作簿
-    with pd.ExcelWriter('conversion_rates_detailed.xlsx', engine='openpyxl') as writer:
-        # 写入详细数据
-        results_df.to_excel(writer, sheet_name='详细数据', index=False)
-        
-        # 创建转化率频数分布数据
-        # 定义转化率区间
-        bins = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-        bin_labels = ['0-10%', '10-20%', '20-30%', '30-40%', '40-50%', '50-60%', '60-70%', '70-80%', '80-90%', '90-100%']
-        
-        # 计算各转化率的频数分布
-        conversion_types = ['D12h转化率', 'D24h转化率', 'D7转化率', 'D14转化率', 'D30转化率', 'D90转化率']
-        
-        for conv_type in conversion_types:
-            # 计算频数分布
-            hist_data = pd.cut(results_df[conv_type], bins=bins, labels=bin_labels, include_lowest=True)
-            hist_counts = hist_data.value_counts().sort_index()
-            hist_freq = hist_counts / hist_counts.sum()
-            hist_df = pd.DataFrame({
-                '区间': bin_labels,
-                '频数': hist_counts.values,
-                '频率': hist_freq.values,
-                '频率(%)': hist_freq.values * 100
-            })
-            hist_df.to_excel(writer, sheet_name=f'{conv_type}分布', index=False)
-        
-    # 用openpyxl添加直方图
-    from openpyxl import load_workbook
-    workbook = load_workbook('conversion_rates_detailed.xlsx')
-    for conv_type in conversion_types:
-        sheet_name = f"{conv_type}分布"
-        if sheet_name in workbook.sheetnames:
-            ws = workbook[sheet_name]
-            # 创建频数柱状图
-            chart1 = BarChart()
-            chart1.title = f"{conv_type}频数分布直方图"
-            chart1.x_axis.title = "转化率区间"
-            chart1.y_axis.title = "频数"
-            data1 = Reference(ws, min_col=2, min_row=1, max_row=11)
-            cats1 = Reference(ws, min_col=1, min_row=2, max_row=11)
-            chart1.add_data(data1, titles_from_data=True)
-            chart1.set_categories(cats1)
-            ws.add_chart(chart1, "F2")
-            # 创建频率柱状图
-            chart2 = BarChart()
-            chart2.title = f"{conv_type}频率分布直方图"
-            chart2.x_axis.title = "转化率区间"
-            chart2.y_axis.title = "频率(%)"
-            data2 = Reference(ws, min_col=4, min_row=1, max_row=11)
-            cats2 = Reference(ws, min_col=1, min_row=2, max_row=11)
-            chart2.add_data(data2, titles_from_data=True)
-            chart2.set_categories(cats2)
-            ws.add_chart(chart2, "F15")
-    workbook.save('conversion_rates_detailed.xlsx')
-
     # ========== 分时间段中位数趋势图 ==========
     print("正在统计指定时间段的中位数转化率并绘图...")
     period_labels = [
@@ -213,15 +160,14 @@ def calculate_conversion_rates(file_path):
         ("2025-04-21", "2025-04-27"),
         ("2025-04-14", "2025-04-20")
     ]
-    # 修正：将 period_ranges 的起止日期字符串转为 datetime.date 类型
     import datetime
     period_ranges = [
         (datetime.datetime.strptime(start, "%Y-%m-%d").date(), datetime.datetime.strptime(end, "%Y-%m-%d").date())
         for start, end in period_ranges
     ]
-    period_conv_types = ['D12h转化率', 'D24h转化率', 'D7转化率', 'D14转化率']
+    # 只保留D7、D14、D30
+    period_conv_types = ['D7转化率', 'D14转化率', 'D30转化率']
     period_medians = {conv: [] for conv in period_conv_types}
-    # period_labels、period_ranges逆序，需调整为时间从前到后
     period_labels = period_labels[::-1]
     period_ranges = period_ranges[::-1]
     for start, end in period_ranges:
@@ -229,67 +175,57 @@ def calculate_conversion_rates(file_path):
         for conv in period_conv_types:
             median_val = results_df.loc[mask, conv].median() if mask.any() else None
             period_medians[conv].append(median_val)
-    with pd.ExcelWriter('conversion_rates_detailed.xlsx', engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        period_df = pd.DataFrame({'时间段': period_labels})
-        for conv in period_conv_types:
-            period_df[conv] = [v*100 if v is not None else None for v in period_medians[conv]]
+    # 绘制趋势折线图并插入到Excel
+    period_df = pd.DataFrame({'时间段': period_labels})
+    for conv in period_conv_types:
+        period_df[conv] = [v*100 if v is not None else None for v in period_medians[conv]]
+
+    # 先保存详细数据sheet
+    with pd.ExcelWriter('conversion_rates_detailed.xlsx', engine='openpyxl') as writer:
+        results_df.to_excel(writer, sheet_name='详细数据', index=False)
+        # 再保存分时间段中位数sheet
         period_df.to_excel(writer, sheet_name='分时间段中位数', index=False)
+
+    # 绘制并保存图片
+    plt.figure(figsize=(12, 6))
+    for conv in period_conv_types:
+        plt.plot(period_labels, [v*100 if v is not None else None for v in period_medians[conv]], marker='o', label=conv)
+    plt.title('D7/D14/D30转化率分时间段中位数趋势')
+    plt.xlabel('注册时间段')
+    plt.ylabel('中位数转化率(%)')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.tight_layout()
+    img_path = 'conversion_trend.png'
+    plt.savefig(img_path)
+    plt.close()
+
+    # 将图片插入Excel
     workbook = load_workbook('conversion_rates_detailed.xlsx')
-    worksheet = workbook['分时间段中位数']
-    from openpyxl.chart import LineChart
-    for idx, conv in enumerate(period_conv_types):
-        chart = LineChart()
-        chart.title = f"{conv}分时间段中位数趋势"
-        chart.x_axis.title = "注册时间段"
-        chart.y_axis.title = "中位数转化率(%)"
-        chart.y_axis.scaling.min = 0
-        chart.y_axis.scaling.max = 100
-        data = Reference(worksheet, min_col=2+idx, min_row=1, max_row=len(period_labels)+1)
-        cats = Reference(worksheet, min_col=1, min_row=2, max_row=len(period_labels)+1)
-        chart.add_data(data, titles_from_data=True)
-        chart.set_categories(cats)
-        chart.style = 10
-        chart.height = 12
-        chart.width = 18
-        worksheet.add_chart(chart, f"F{2+idx*16}")
+    if '趋势图' in workbook.sheetnames:
+        ws = workbook['趋势图']
+        for row in ws['A1:Z30']:
+            for cell in row:
+                cell.value = None
+    else:
+        ws = workbook.create_sheet('趋势图')
+    img = XLImage(img_path)
+    img.anchor = 'A1'
+    ws.add_image(img)
     workbook.save('conversion_rates_detailed.xlsx')
-    
+    # 只返回趋势数据
     return {
-        'overall_d12h_rate': overall_d12h_rate,
-        'overall_d24h_rate': overall_d24h_rate,
-        'overall_d7_rate': overall_d7_rate,
-        'overall_d14_rate': overall_d14_rate,
-        'overall_d30_rate': overall_d30_rate,
-        'overall_d90_rate': overall_d90_rate,
-        'total_registrations': total_registrations,
-        'total_d12h_paid': total_d12h_paid,
-        'total_d24h_paid': total_d24h_paid,
-        'total_d7_paid': total_d7_paid,
-        'total_d14_paid': total_d14_paid,
-        'total_d30_paid': total_d30_paid,
-        'total_d90_paid': total_d90_paid,
-        'detailed_results': results_df
+        'period_labels': period_labels,
+        'period_medians': period_medians
     }
 
 if __name__ == "__main__":
     # 计算转化率
     results = calculate_conversion_rates('Result_10.xlsx')
-    
-    # 保存结果到文件
+    # 保存趋势数据到文件（可选）
     with open('conversion_rates_results.txt', 'w', encoding='utf-8') as f:
-        f.write("=== 转化率计算结果 ===\n")
-        f.write(f"总注册人数: {results['total_registrations']}\n")
-        f.write(f"12h内付费人数: {results['total_d12h_paid']}\n")
-        f.write(f"24h内付费人数: {results['total_d24h_paid']}\n")
-        f.write(f"总D7付费人数: {results['total_d7_paid']}\n")
-        f.write(f"总D14付费人数: {results['total_d14_paid']}\n")
-        f.write(f"总D30付费人数: {results['total_d30_paid']}\n")
-        f.write(f"总D90付费人数: {results['total_d90_paid']}\n")
-        f.write(f"12h转化率: {results['overall_d12h_rate']:.4f} ({results['overall_d12h_rate']*100:.2f}%)\n")
-        f.write(f"24h转化率: {results['overall_d24h_rate']:.4f} ({results['overall_d24h_rate']*100:.2f}%)\n")
-        f.write(f"总体D7转化率: {results['overall_d7_rate']:.4f} ({results['overall_d7_rate']*100:.2f}%)\n")
-        f.write(f"总体D14转化率: {results['overall_d14_rate']:.4f} ({results['overall_d14_rate']*100:.2f}%)\n")
-        f.write(f"总体D30转化率: {results['overall_d30_rate']:.4f} ({results['overall_d30_rate']*100:.2f}%)\n")
-        f.write(f"总体D90转化率: {results['overall_d90_rate']:.4f} ({results['overall_d90_rate']*100:.2f}%)\n")
-    
-    print(f"\n结果已保存到 conversion_rates_results.txt") 
+        f.write("=== 分时间段中位数趋势数据 ===\n")
+        for conv, vals in results['period_medians'].items():
+            f.write(f"{conv}: {vals}\n")
+        f.write(f"时间段: {results['period_labels']}\n")
+    print(f"\n趋势数据已保存到 conversion_rates_results.txt") 

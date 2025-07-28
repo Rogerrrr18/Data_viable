@@ -58,16 +58,56 @@ const percentIndicators = [
 // 获取数据并渲染图表
 async function loadDataAndRenderCharts() {
     try {
-        // 使用绝对路径，确保无论 index.html 在哪个目录都能找到数据文件
-        const baseUrl = window.location.origin;
-        const response = await fetch(`${baseUrl}/data.json`);
+        console.log('开始加载数据...');
+        console.log('当前页面URL:', window.location.href);
+        console.log('当前页面路径:', window.location.pathname);
+        
+        // 使用相对路径，确保在阿里云服务器上能正确加载
+        const baseUrl = window.location.pathname.replace('/index.html', '');
+        
+        // 加载主要数据
+        console.log('尝试加载 /api/data...');
+        const response = await fetch(`/api/data`);
+        console.log('/api/data 响应状态:', response.status);
         if (!response.ok) {
-            throw new Error('数据获取失败');
+            throw new Error(`数据获取失败: ${response.status} ${response.statusText}`);
         }
         const data = await response.json();
-        renderCharts(data);
+        console.log('/api/data 加载成功，数据长度:', Object.keys(data).length);
+        
+        // 加载付费时长分布数据
+        let payTimeData = null;
+        try {
+            console.log('尝试加载 pay_time_data.json...');
+            const payTimeResponse = await fetch(`./pay_time_data.json`);
+            console.log('pay_time_data.json 响应状态:', payTimeResponse.status);
+            if (payTimeResponse.ok) {
+                payTimeData = await payTimeResponse.json();
+                console.log('pay_time_data.json 加载成功');
+            }
+        } catch (error) {
+            console.warn('付费时长分布数据加载失败:', error);
+        }
+        
+        // 加载转化率趋势数据
+        let conversionTrendData = null;
+        try {
+            console.log('尝试加载 conversion_trend_data.json...');
+            const conversionResponse = await fetch(`./conversion_trend_data.json`);
+            console.log('conversion_trend_data.json 响应状态:', conversionResponse.status);
+            if (conversionResponse.ok) {
+                conversionTrendData = await conversionResponse.json();
+                console.log('conversion_trend_data.json 加载成功');
+            }
+        } catch (error) {
+            console.warn('转化率趋势数据加载失败:', error);
+        }
+        
+        console.log('开始渲染图表...');
+        renderCharts(data, payTimeData, conversionTrendData);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('charts-container').style.display = 'grid';
+        console.log('图表渲染完成');
     } catch (error) {
         console.error('加载数据失败:', error);
         document.getElementById('loading').style.display = 'none';
@@ -76,7 +116,7 @@ async function loadDataAndRenderCharts() {
 }
 
 // 渲染所有图表
-function renderCharts(data) {
+function renderCharts(data, payTimeData, conversionTrendData) {
     const container = document.getElementById('charts-container');
     container.innerHTML = '';
     // 日期升序排序
@@ -111,8 +151,15 @@ function renderCharts(data) {
             renderLineChart(chartData, group, groupIdx, chartContainer.querySelector('.chart'), sortedDates);
         }, groupIdx * 100);
     });
-    // 渲染漏斗图
-    renderFunnelChart(data, indicatorMap, container);
+    // 渲染付费时长分布图
+    if (payTimeData) {
+        renderPayTimeCharts(payTimeData, container);
+    }
+    
+    // 渲染转化率趋势图
+    if (conversionTrendData) {
+        renderConversionTrendChart(conversionTrendData, container);
+    }
 }
 
 // 创建图表容器
@@ -399,6 +446,286 @@ function formatValue(value) {
     } else {
         return value.toFixed(2);
     }
+}
+
+// 渲染付费时长分布图
+function renderPayTimeCharts(payTimeData, container) {
+    // 渲染天分布图
+    if (payTimeData.付费时长分布_天) {
+        const dayContainer = createChartContainer(payTimeData.付费时长分布_天.title);
+        container.appendChild(dayContainer);
+        
+        setTimeout(() => {
+            renderBarChart(
+                payTimeData.付费时长分布_天.data,
+                dayContainer.querySelector('.chart'),
+                'range',
+                'count',
+                '#1890FF'
+            );
+        }, 100);
+    }
+    
+    // 渲染小时分布图
+    if (payTimeData.付费时长分布_小时) {
+        const hourContainer = createChartContainer(payTimeData.付费时长分布_小时.title);
+        container.appendChild(hourContainer);
+        
+        setTimeout(() => {
+            renderBarChart(
+                payTimeData.付费时长分布_小时.data,
+                hourContainer.querySelector('.chart'),
+                'range',
+                'count',
+                '#F5A623'
+            );
+        }, 200);
+    }
+}
+
+// 渲染柱状图
+function renderBarChart(data, container, xField, yField, color) {
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px 0;">无有效数据</div>';
+        return;
+    }
+    
+    const plot = new G2Plot.Column(container, {
+        data: data,
+        xField: xField,
+        yField: yField,
+        color: color,
+        columnStyle: {
+            radius: [4, 4, 0, 0],
+        },
+        xAxis: {
+            title: {
+                text: '时长区间',
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                },
+            },
+            label: {
+                style: {
+                    fontSize: 12,
+                },
+                autoRotate: true,
+                autoHide: true,
+            },
+        },
+        yAxis: {
+            title: {
+                text: '用户数量',
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                },
+            },
+            label: {
+                style: {
+                    fontSize: 12,
+                },
+                formatter: (value) => {
+                    if (typeof value !== 'number' || isNaN(value)) return value;
+                    if (value >= 1000) {
+                        return (value / 1000).toFixed(1) + 'K';
+                    } else {
+                        return value.toFixed(0);
+                    }
+                },
+            },
+        },
+        tooltip: {
+            showMarkers: false,
+            shared: true,
+            showCrosshairs: true,
+            crosshairs: {
+                type: 'xy',
+            },
+            formatter: (datum) => {
+                return {
+                    name: datum[xField],
+                    value: datum[yField],
+                };
+            },
+        },
+        grid: {
+            line: {
+                style: {
+                    stroke: '#f0f0f0',
+                    lineWidth: 1,
+                },
+            },
+        },
+        theme: {
+            geometries: {
+                column: {
+                    column: {
+                        active: {
+                            style: {
+                                fillOpacity: 0.8,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+    plot.render();
+}
+
+// 渲染转化率趋势图
+function renderConversionTrendChart(conversionTrendData, container) {
+    if (conversionTrendData.转化率趋势) {
+        const trendContainer = createChartContainer(conversionTrendData.转化率趋势.title);
+        container.appendChild(trendContainer);
+        
+        setTimeout(() => {
+            renderConversionTrendLineChart(
+                conversionTrendData.转化率趋势.data,
+                trendContainer.querySelector('.chart')
+            );
+        }, 300);
+    }
+}
+
+// 渲染转化率趋势折线图
+function renderConversionTrendLineChart(data, container) {
+    if (!data || data.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#bbb;padding:40px 0;">无有效数据</div>';
+        return;
+    }
+    
+    // 转换数据格式
+    const chartData = [];
+    data.forEach(item => {
+        if (item.D7转化率 !== null && item.D7转化率 !== undefined) {
+            chartData.push({
+                period: item.period,
+                value: item.D7转化率,
+                type: 'D7转化率'
+            });
+        }
+        if (item.D14转化率 !== null && item.D14转化率 !== undefined) {
+            chartData.push({
+                period: item.period,
+                value: item.D14转化率,
+                type: 'D14转化率'
+            });
+        }
+        if (item.D30转化率 !== null && item.D30转化率 !== undefined) {
+            chartData.push({
+                period: item.period,
+                value: item.D30转化率,
+                type: 'D30转化率'
+            });
+        }
+    });
+    
+    const plot = new G2Plot.Line(container, {
+        data: chartData,
+        xField: 'period',
+        yField: 'value',
+        seriesField: 'type',
+        smooth: true,
+        color: ['#1890FF', '#2FC25B', '#FACC14'],
+        point: {
+            size: 5,
+            shape: 'circle',
+            style: {
+                stroke: '#fff',
+                lineWidth: 2,
+            },
+        },
+        line: {
+            style: {
+                lineWidth: 3,
+            },
+        },
+        xAxis: {
+            title: {
+                text: '注册时间段',
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                },
+            },
+            label: {
+                style: {
+                    fontSize: 12,
+                },
+            },
+        },
+        yAxis: {
+            title: {
+                text: '中位数转化率(%)',
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'bold',
+                },
+            },
+            label: {
+                style: {
+                    fontSize: 12,
+                },
+                formatter: (value) => {
+                    if (typeof value !== 'number' || isNaN(value)) return value;
+                    return value.toFixed(2) + '%';
+                },
+            },
+            min: 50,
+            max: 100,
+        },
+        tooltip: {
+            showMarkers: true,
+            shared: true,
+            showCrosshairs: true,
+            crosshairs: {
+                type: 'xy',
+            },
+            formatter: (datum) => {
+                return {
+                    name: datum.type,
+                    value: datum.value.toFixed(2) + '%',
+                };
+            },
+        },
+        legend: {
+            layout: 'horizontal',
+            position: 'bottom',
+            flipPage: false,
+            itemName: {
+                style: {
+                    fontSize: 14,
+                    fontWeight: 'normal',
+                },
+            },
+        },
+        grid: {
+            line: {
+                style: {
+                    stroke: '#f0f0f0',
+                    lineWidth: 1,
+                },
+            },
+        },
+        theme: {
+            geometries: {
+                point: {
+                    circle: {
+                        active: {
+                            style: {
+                                r: 8,
+                                fillOpacity: 0.8,
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+    plot.render();
 }
 
 document.addEventListener('DOMContentLoaded', loadDataAndRenderCharts); 

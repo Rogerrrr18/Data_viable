@@ -10,7 +10,7 @@ const PORT = 3000;
 app.use(cors());
 
 // 静态文件服务
-app.use(express.static('public'));
+app.use(express.static('../public'));
 // 新增：提供漏斗图图片的静态访问
 app.use('/images', express.static(__dirname));
 
@@ -26,7 +26,7 @@ app.get('/api/data', (req, res) => {
 
 // 主页面路由
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
 // 新增：漏斗图图片页面

@@ -1,0 +1,248 @@
+{
+  "付费时长分布_天": {
+    "title": "所有付费用户注册到付费时长分布（天）",
+    "data": [
+      {
+        "range": "0-1天",
+        "count": 1142
+      },
+      {
+        "range": "1-2天",
+        "count": 26
+      },
+      {
+        "range": "2-3天",
+        "count": 30
+      },
+      {
+        "range": "3-4天",
+        "count": 12
+      },
+      {
+        "range": "4-5天",
+        "count": 17
+      },
+      {
+        "range": "5-6天",
+        "count": 9
+      },
+      {
+        "range": "6-7天",
+        "count": 11
+      },
+      {
+        "range": "7-8天",
+        "count": 11
+      },
+      {
+        "range": "8-9天",
+        "count": 12
+      },
+      {
+        "range": "9-10天",
+        "count": 1
+      },
+      {
+        "range": "10-11天",
+        "count": 2
+      },
+      {
+        "range": "11-12天",
+        "count": 3
+      },
+      {
+        "range": "12-13天",
+        "count": 7
+      },
+      {
+        "range": "13-14天",
+        "count": 6
+      },
+      {
+        "range": "14-15天",
+        "count": 6
+      },
+      {
+        "range": "15-16天",
+        "count": 4
+      },
+      {
+        "range": "16-17天",
+        "count": 3
+      },
+      {
+        "range": "17-18天",
+        "count": 2
+      },
+      {
+        "range": "18-19天",
+        "count": 6
+      },
+      {
+        "range": "19-20天",
+        "count": 2
+      },
+      {
+        "range": "20-21天",
+        "count": 4
+      },
+      {
+        "range": "21-22天",
+        "count": 8
+      },
+      {
+        "range": "22-23天",
+        "count": 2
+      },
+      {
+        "range": "23-24天",
+        "count": 2
+      },
+      {
+        "range": "24-25天",
+        "count": 2
+      },
+      {
+        "range": "25-26天",
+        "count": 1
+      },
+      {
+        "range": "26-27天",
+        "count": 3
+      },
+      {
+        "range": "27-28天",
+        "count": 6
+      },
+      {
+        "range": "28-29天",
+        "count": 3
+      },
+      {
+        "range": "29-30天",
+        "count": 3
+      },
+      {
+        "range": "30-31天",
+        "count": 2
+      },
+      {
+        "range": "31-32天",
+        "count": 2
+      },
+      {
+        "range": "32-33天",
+        "count": 0
+      },
+      {
+        "range": "33-34天",
+        "count": 0
+      },
+      {
+        "range": "34-35天",
+        "count": 3
+      }
+    ]
+  },
+  "付费时长分布_小时": {
+    "title": "24小时内付费用户注册到付费时长分布（小时）",
+    "data": [
+      {
+        "range": "0-1h",
+        "count": 985
+      },
+      {
+        "range": "1-2h",
+        "count": 37
+      },
+      {
+        "range": "2-3h",
+        "count": 19
+      },
+      {
+        "range": "3-4h",
+        "count": 7
+      },
+      {
+        "range": "4-5h",
+        "count": 6
+      },
+      {
+        "range": "5-6h",
+        "count": 8
+      },
+      {
+        "range": "6-7h",
+        "count": 5
+      },
+      {
+        "range": "7-8h",
+        "count": 2
+      },
+      {
+        "range": "8-9h",
+        "count": 3
+      },
+      {
+        "range": "9-10h",
+        "count": 8
+      },
+      {
+        "range": "10-11h",
+        "count": 4
+      },
+      {
+        "range": "11-12h",
+        "count": 4
+      },
+      {
+        "range": "12-13h",
+        "count": 3
+      },
+      {
+        "range": "13-14h",
+        "count": 2
+      },
+      {
+        "range": "14-15h",
+        "count": 3
+      },
+      {
+        "range": "15-16h",
+        "count": 5
+      },
+      {
+        "range": "16-17h",
+        "count": 6
+      },
+      {
+        "range": "17-18h",
+        "count": 3
+      },
+      {
+        "range": "18-19h",
+        "count": 5
+      },
+      {
+        "range": "19-20h",
+        "count": 6
+      },
+      {
+        "range": "20-21h",
+        "count": 1
+      },
+      {
+        "range": "21-22h",
+        "count": 7
+      },
+      {
+        "range": "22-23h",
+        "count": 8
+      },
+      {
+        "range": "23-24h",
+        "count": 5
+      }
+    ]
+  }
+}
